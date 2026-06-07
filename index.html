@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KruOh-AI Student Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #2C3E50; --secondary: #3498DB; --bg: #F5F7FA; --card-bg: #FFFFFF; }
+    body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); color: #333; margin: 0; padding: 15px; }
+    .container { max-width: 480px; margin: 0 auto; }
+    
+    .tabs { display: flex; background: var(--card-bg); border-radius: 12px; padding: 5px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .tab { flex: 1; text-align: center; padding: 10px 5px; cursor: pointer; font-weight: 600; color: #7F8C8D; border-radius: 8px; font-size: 13px; transition: 0.3s; }
+    .tab.active { background: var(--primary); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 15px; }
+    
+    .profile-section { text-align: center; position: relative; }
+    .profile-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 10px; background-color: #EEE; }
+    .student-name { font-size: 18px; font-weight: 700; color: var(--primary); margin: 0 0 5px 0; }
+    .student-info { font-size: 14px; color: #7F8C8D; margin: 0; }
+    
+    .attendance-grid { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
+    .stat-box { flex: 1; text-align: center; padding: 10px 5px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .stat-box span { display: block; font-size: 18px; margin-top: 5px; font-weight: 700; }
+    .bg-green { background: #E8F8F5; color: #1ABC9C; }
+    .bg-red { background: #FDEDEC; color: #E74C3C; }
+    .bg-yellow { background: #FEF9E7; color: #F1C40F; }
+    .bg-gray { background: #F2F3F4; color: #7F8C8D; }
+
+    .developer-credit { font-size: 11px; color: #BDC3C7; text-align: center; margin-top: 18px; font-weight: 400; }
+    .site-footer { text-align: center; font-size: 11px; color: #A6ACAF; margin-top: 5px; margin-bottom: 20px; font-weight: 400; }
+
+    .section-title { font-size: 15px; font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 8px; margin-bottom: 12px; }
+    .score-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #555; }
+    .score-row.bold { font-weight: 700; color: var(--primary); margin-top: 10px; border-top: 1px dashed #DDD; padding-top: 10px; }
+    
+    .final-result { display: flex; gap: 15px; margin-top: 10px; }
+    .result-box { flex: 1; background: var(--primary); color: white; text-align: center; padding: 15px; border-radius: 12px; }
+    .result-box .label { font-size: 12px; opacity: 0.8; }
+    .result-box .value { font-size: 28px; font-weight: 700; margin-top: 5px; }
+    .result-box.grade { background: #F39C12; }
+
+    .task-group { margin-bottom: 10px; }
+    .task-item { display: flex; justify-content: space-between; background: #F8F9F9; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+    .task-item .status.done { color: #27AE60; font-weight: 600; }
+    .task-item .status.missing { color: #E74C3C; font-weight: 600; }
+    
+    .summary-box { background: #EBF5FB; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 14px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .summary-row.highlight { color: var(--secondary); font-weight: 700; font-size: 15px; border-top: 1px dashed #BDC3C7; padding-top: 5px; margin-top: 5px; }
+    
+    #loading { text-align: center; margin-top: 50px; font-weight: 600; color: var(--primary); }
+    #main-content { display: none; }
+    #error-msg { text-align: center; margin-top: 50px; color: #E74C3C; font-weight: 600; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div id="loading">กำลังดึงข้อมูล... ⏳</div>
+  <div id="error-msg"></div>
+
+  <div id="main-content">
+    
+    <div class="card profile-section">
+      <img id="profile-img" src="" class="profile-img" alt="Profile">
+      <h3 class="student-name" id="student-name">-</h3>
+      <p class="student-info" id="student-info">-</p>
+      <div class="attendance-grid">
+        <div class="stat-box bg-green">มาเรียน<span id="stat-present">0</span></div>
+        <div class="stat-box bg-red">ขาด<span id="stat-absent">0</span></div>
+        <div class="stat-box bg-yellow">ลา<span id="stat-leave">0</span></div>
+        <div class="stat-box bg-gray">ไม่เข้าเรียน<span id="stat-skip">0</span></div>
+      </div>
+      <div class="developer-credit">พัฒนาระบบโดย: นายพงษ์พันธุ์ ไพศาลธรรม</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('gradebook')" id="tab-gradebook">🏆 ผลการเรียน</div>
+      <div class="tab" onclick="switchTab('tasks')" id="tab-tasks">📝 สถานะงาน</div>
+      <div class="tab" onclick="switchTab('quiz')" id="tab-quiz">💡 สอบย่อย</div>
+    </div>
+
+    <div id="content-gradebook" class="tab-content active">
+      <div class="card">
+        <div class="section-title">คะแนนก่อนสอบกลางภาค</div>
+        <div class="score-row"><span>K (ความรู้)</span> <span id="pre-k">- / 10</span></div>
+        <div class="score-row"><span>P (ทักษะกระบวนการ)</span> <span id="pre-p">- / 10</span></div>
+        <div class="score-row"><span>A (คุณลักษณะฯ)</span> <span id="pre-a">- / 5</span></div>
+        <div class="score-row bold"><span>คะแนนรวมก่อนกลางภาค</span> <span id="pre-total">- / 25</span></div>
+        <div class="score-row bold" style="color: #E67E22;"><span>สอบกลางภาค</span> <span id="midterm">- / 20</span></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">คะแนนหลังสอบกลางภาค</div>
+        <div class="score-row"><span>K (ความรู้)</span> <span id="post-k">- / 10</span></div>
+        <div class="score-row"><span>P (ทักษะกระบวนการ)</span> <span id="post-p">- / 10</span></div>
+        <div class="score-row"><span>A (คุณลักษณะฯ)</span> <span id="post-a">- / 5</span></div>
+        <div class="score-row bold"><span>คะแนนรวมหลังกลางภาค</span> <span id="post-total">- / 25</span></div>
+        <div class="score-row bold" style="color: #E67E22;"><span>สอบปลายภาค</span> <span id="final">- / 30</span></div>
+      </div>
+
+      <div class="final-result">
+        <div class="result-box">
+          <div class="label">คะแนนรวมทั้งหมด</div>
+          <div class="value" id="total-score">0</div>
+        </div>
+        <div class="result-box grade">
+          <div class="label">ผลการเรียน</div>
+          <div class="value" id="final-grade">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="content-tasks" class="tab-content">
+      <div class="card">
+        <div class="section-title">ภาระงานก่อนสอบกลางภาค</div>
+        <div id="pre-task-list">ไม่มีงานในหมวดนี้</div>
+      </div>
+      <div class="card">
+        <div class="section-title">ภาระงานหลังสอบกลางภาค</div>
+        <div id="post-task-list">ไม่มีงานในหมวดนี้</div>
+      </div>
+    </div>
+
+    <div id="content-quiz" class="tab-content">
+      <div class="card">
+        <div class="section-title">การสอบย่อยก่อนสอบกลางภาค</div>
+        <div id="pre-quiz-list">ไม่มีข้อมูลการสอบในหมวดนี้</div>
+      </div>
+      <div class="card">
+        <div class="section-title">การสอบย่อยหลังสอบกลางภาค</div>
+        <div id="post-quiz-list">ไม่มีข้อมูลการสอบในหมวดนี้</div>
+      </div>
+    </div>
+
+    <div class="site-footer">กลุ่มสาระการเรียนรู้คณิตศาสตร์ โรงเรียนสตรีชัยภูมิ</div>
+
+  </div>
+</div>
+
+<script>
+  // ลิงก์ API จาก Apps Script ของโอ๊ะ
+  const API_URL = "https://script.google.com/macros/s/AKfycbwFivPC9s_zdllOeC7wsgMzjDRTcmhBE2gOdWhY8H0rzqgW2KjI3DidjZvLo8AL3aiPbQ/exec";
+  
+  // ดึงรหัส UID จาก URL ด้านบน (เช่น index.html?uid=U12345)
+  const urlParams = new URLSearchParams(window.location.search);
+  const userUid = urlParams.get('uid');
+
+  window.onload = function() {
+    if(!userUid) {
+      showError("กรุณาเข้าสู่ระบบผ่านเมนูใน LINE นะครับ");
+      return;
+    }
+    
+    // สั่งให้เว็บวิ่งไปขอข้อมูลจาก Google Apps Script (API)
+    fetch(API_URL + "?action=getDashboard&uid=" + userUid)
+      .then(response => response.json())
+      .then(res => {
+        renderData(res);
+      })
+      .catch(error => {
+        console.error(error);
+        showError("การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้งครับ");
+      });
+  }
+
+  function renderData(res) {
+    if (res.status === 'error') {
+      showError(res.message);
+      return;
+    }
+    
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+
+    const gd = res.gradeData; 
+    
+    let picUrl = gd[6] || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
+    document.getElementById('profile-img').src = picUrl;
+    
+    let fullName = (gd[1] || "") + (gd[2] || "") + " " + (gd[3] || "");
+    document.getElementById('student-name').innerText = fullName;
+    document.getElementById('student-info').innerText = "ม." + gd[4] + " | เลขที่ " + gd[5] + " | รหัส: " + gd[0];
+    
+    document.getElementById('stat-present').innerText = gd[7] || "0";
+    document.getElementById('stat-absent').innerText = gd[8] || "0";
+    document.getElementById('stat-leave').innerText = gd[9] || "0";
+    document.getElementById('stat-skip').innerText = gd[11] || "0";
+
+    document.getElementById('pre-k').innerText = (gd[12] || "0") + " / 10";
+    document.getElementById('pre-p').innerText = (gd[13] || "0") + " / 10";
+    document.getElementById('pre-a').innerText = (gd[14] || "0") + " / 5";
+    document.getElementById('pre-total').innerText = (gd[15] || "0") + " / 25";
+    document.getElementById('midterm').innerText = (gd[16] || "0") + " / 20";
+
+    document.getElementById('post-k').innerText = (gd[17] || "0") + " / 10";
+    document.getElementById('post-p').innerText = (gd[18] || "0") + " / 10";
+    document.getElementById('post-a').innerText = (gd[19] || "0") + " / 5";
+    document.getElementById('post-total').innerText = (gd[20] || "0") + " / 25";
+    document.getElementById('final').innerText = (gd[21] || "0") + " / 30";
+
+    document.getElementById('total-score').innerText = gd[22] || "0";
+    document.getElementById('final-grade').innerText = gd[23] || "-";
+
+    let preHtml = ""; let postHtml = "";
+    let td = res.taskData;
+    
+    if (td) {
+      for (let i = 2; i < res.taskHeaders.length; i++) {
+        if (res.taskHeaders[i]) {
+          let score = td[i] || "";
+          let taskName = res.taskHeaders[i].replace('T', 'งานชิ้นที่ ');
+          let statusHtml = score === "ยังไม่ส่ง" 
+            ? `<span class="status missing">ยังไม่ส่ง</span>` 
+            : (score !== "" ? `<span class="status done">${score} คะแนน</span>` : `<span class="status">รอคะแนน</span>`);
+          let rowHtml = `<div class="task-item"><span>${taskName}</span>${statusHtml}</div>`;
+          if (res.taskCategories[i] === "Pre") preHtml += rowHtml;
+          if (res.taskCategories[i] === "Post") postHtml += rowHtml;
+        }
+      }
+    }
+    
+    let preP_Summary = gd[13] || "0.00"; 
+    let postP_Summary = gd[18] || "0.00"; 
+
+    if (preHtml) {
+      preHtml += `<div class="summary-box"><div class="summary-row highlight"><span>สรุปคะแนนเก็บ (P)</span><span>${preP_Summary} / 10 คะแนน</span></div></div>`;
+      document.getElementById('pre-task-list').innerHTML = `<div class="task-group">${preHtml}</div>`;
+    }
+    if (postHtml) {
+      postHtml += `<div class="summary-box"><div class="summary-row highlight"><span>สรุปคะแนนเก็บ (P)</span><span>${postP_Summary} / 10 คะแนน</span></div></div>`;
+      document.getElementById('post-task-list').innerHTML = `<div class="task-group">${postHtml}</div>`;
+    }
+
+    let preQuizHtml = ""; let postQuizHtml = "";
+    let preQuizRaw = 0; let preQuizMax = 0;
+    let postQuizRaw = 0; let postQuizMax = 0;
+    
+    let qd = res.quizData;
+    let qCat = res.quizCategories;
+    let qMax = res.quizFullScores;
+    let qTop = res.quizTopics;
+
+    if (qd) {
+      for (let i = 2; i < qTop.length; i++) { 
+        if (qTop[i] && qTop[i].trim() !== "") { 
+          let score = qd[i] || "";
+          let maxScore = qMax[i] || "0";
+          let topicName = "📝 " + qTop[i];
+          let statusHtml = "";
+          
+          if (score === "" || score === "ขาดสอบ" || score === "ยังไม่ได้สอบ") {
+            statusHtml = `<span class="status missing">ยังไม่ได้สอบ / ขาดสอบ</span>`;
+          } else {
+            let numScore = parseFloat(score) || 0;
+            let numMax = parseFloat(maxScore) || 0;
+            statusHtml = `<span class="status done">${score} / ${maxScore}</span>`;
+            
+            if (qCat[i] === "Pre") { preQuizRaw += numScore; preQuizMax += numMax; }
+            if (qCat[i] === "Post") { postQuizRaw += numScore; postQuizMax += numMax; }
+          }
+            
+          let rowHtml = `<div class="task-item"><span>${topicName}</span>${statusHtml}</div>`;
+          if (qCat[i] === "Pre") preQuizHtml += rowHtml;
+          if (qCat[i] === "Post") postQuizHtml += rowHtml;
+        }
+      }
+    }
+
+    let preK_Summary = gd[12] || "0"; 
+    let postK_Summary = gd[17] || "0";
+
+    if (preQuizHtml) {
+      preQuizHtml += `
+        <div class="summary-box">
+          <div class="summary-row"><span>รวมคะแนนดิบทั้งหมด</span><span>${preQuizRaw} / ${preQuizMax}</span></div>
+          <div class="summary-row highlight"><span>เฉลี่ยเป็นคะแนนเก็บ (K)</span><span>${preK_Summary} / 10 คะแนน</span></div>
+        </div>`;
+      document.getElementById('pre-quiz-list').innerHTML = `<div class="task-group">${preQuizHtml}</div>`;
+    }
+    if (postQuizHtml) {
+      postQuizHtml += `
+        <div class="summary-box">
+          <div class="summary-row"><span>รวมคะแนนดิบทั้งหมด</span><span>${postQuizRaw} / ${postQuizMax}</span></div>
+          <div class="summary-row highlight"><span>เฉลี่ยเป็นคะแนนเก็บ (K)</span><span>${postK_Summary} / 10 คะแนน</span></div>
+        </div>`;
+      document.getElementById('post-quiz-list').innerHTML = `<div class="task-group">${postQuizHtml}</div>`;
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('loading').style.display = 'none';
+    let errDiv = document.getElementById('error-msg');
+    errDiv.innerText = msg;
+    errDiv.style.display = 'block';
+  }
+
+  function switchTab(tabName) {
+    document.getElementById('content-tasks').classList.remove('active');
+    document.getElementById('content-gradebook').classList.remove('active');
+    document.getElementById('content-quiz').classList.remove('active');
+    
+    document.getElementById('tab-tasks').classList.remove('active');
+    document.getElementById('tab-gradebook').classList.remove('active');
+    document.getElementById('tab-quiz').classList.remove('active');
+
+    document.getElementById('content-' + tabName).classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+  }
+</script>
+
+</body>
+</html>
+ 
+
