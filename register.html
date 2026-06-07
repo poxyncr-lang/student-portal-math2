@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ลงทะเบียนเข้าใช้งาน KruOh-AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #5C4D41; --secondary: #8B7355; --bg: #FDFBF7; --card-bg: #FFFFFF; }
+    body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 400px; background: var(--card-bg); padding: 30px 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h2 { text-align: center; color: var(--primary); margin-bottom: 5px; font-weight: 700; }
+    p.subtitle { text-align: center; color: #7F8C8D; font-size: 14px; margin-top: 0; margin-bottom: 25px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #E6DFD3; border-radius: 8px; font-size: 14px; font-family: 'Sarabun', sans-serif; box-sizing: border-box; background-color: #FAFAFA; transition: 0.3s; }
+    input:focus, select:focus { outline: none; border-color: var(--secondary); background-color: #FFF; box-shadow: 0 0 0 2px rgba(139, 115, 85, 0.2); }
+    .btn-submit { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 10px rgba(92, 77, 65, 0.2); }
+    .btn-submit:hover { background-color: var(--secondary); transform: translateY(-2px); }
+    .btn-submit:disabled { background-color: #CCC; cursor: not-allowed; transform: none; box-shadow: none; }
+    #message { text-align: center; margin-top: 15px; font-weight: 600; font-size: 14px; padding: 10px; border-radius: 8px; display: none; }
+    .success { color: #27AE60; background-color: #EAFAF1; display: block !important; }
+    .error { color: #E74C3C; background-color: #FDEDEC; display: block !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>ลงทะเบียน KruOh-AI</h2>
+  <p class="subtitle">ระบบจัดการเรียนการสอนคณิตศาสตร์</p>
+
+  <form id="registerForm">
+    <div class="form-group">
+      <label>📌 รหัส LINE UID</label>
+      <input type="text" id="uid" required placeholder="วางรหัสที่คัดลอกมาตรงนี้">
+    </div>
+    <div class="form-group">
+      <label>เลขประจำตัวนักเรียน (5 หลัก)</label>
+      <input type="number" id="studentId" required placeholder="เช่น 12345">
+    </div>
+    <div class="form-group" style="display: flex; gap: 10px;">
+      <div style="flex: 1;">
+        <label>คำนำหน้า</label>
+        <select id="prefix" required>
+          <option value="">เลือก</option>
+          <option value="เด็กชาย">เด็กชาย</option>
+          <option value="เด็กหญิง">เด็กหญิง</option>
+          <option value="นาย">นาย</option>
+          <option value="นางสาว">นางสาว</option>
+        </select>
+      </div>
+      <div style="flex: 2;">
+        <label>ชื่อจริง</label>
+        <input type="text" id="firstName" required placeholder="ชื่อ">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>นามสกุล</label>
+      <input type="text" id="lastName" required placeholder="นามสกุล">
+    </div>
+    <div class="form-group" style="display: flex; gap: 10px;">
+      <div style="flex: 1;">
+        <label>ชั้น ม.</label>
+        <input type="text" id="room" required placeholder="เช่น 4/1">
+      </div>
+      <div style="flex: 1;">
+        <label>เลขที่</label>
+        <input type="number" id="number" required placeholder="เช่น 1">
+      </div>
+    </div>
+    
+    <button type="submit" id="submitBtn" class="btn-submit">🤎 บันทึกข้อมูลลงทะเบียน</button>
+    <div id="message"></div>
+  </form>
+</div>
+
+<script>
+  // ลิงก์ API จาก Apps Script ของโอ๊ะ
+  const API_URL = "https://script.google.com/macros/s/AKfycbwFivPC9s_zdllOeC7wsgMzjDRTcmhBE2gOdWhY8H0rzqgW2KjI3DidjZvLo8AL3aiPbQ/exec";
+
+  // ดึง UID จาก URL มาใส่ให้เลยถ้ามี
+  const urlParams = new URLSearchParams(window.location.search);
+  const uidParam = urlParams.get('uid');
+  if(uidParam) { document.getElementById('uid').value = uidParam; }
+
+  document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    let uid = document.getElementById('uid').value.trim();
+    if (!uid) {
+      showMessage("โปรดวางรหัส LINE UID ก่อนครับ", "error");
+      return;
+    }
+
+    let btn = document.getElementById('submitBtn');
+    btn.innerText = "กำลังบันทึกข้อมูล... ⏳";
+    btn.disabled = true;
+    document.getElementById('message').className = "";
+
+    let studentId = document.getElementById('studentId').value.trim();
+    let prefix = document.getElementById('prefix').value;
+    let firstName = document.getElementById('firstName').value.trim();
+    let lastName = document.getElementById('lastName').value.trim();
+    let room = document.getElementById('room').value.trim();
+    let number = document.getElementById('number').value.trim();
+
+    // สร้างลิงก์ส่งข้อมูล
+    let requestUrl = `${API_URL}?action=register&uid=${encodeURIComponent(uid)}&studentId=${encodeURIComponent(studentId)}&prefix=${encodeURIComponent(prefix)}&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&room=${encodeURIComponent(room)}&number=${encodeURIComponent(number)}`;
+
+    // ยิงข้อมูลไปที่ API
+    fetch(requestUrl)
+      .then(response => response.json())
+      .then(data => {
+        if(data.status === 'success') {
+          showMessage("✅ ลงทะเบียนสำเร็จ! ปิดหน้านี้แล้วกลับไปที่ LINE ได้เลยครับ", "success");
+          document.getElementById('registerForm').reset();
+          btn.innerText = "ลงทะเบียนเรียบร้อย";
+        } else {
+          showMessage("❌ ข้อผิดพลาด: " + data.message, "error");
+          btn.innerText = "🤎 บันทึกข้อมูลลงทะเบียน";
+          btn.disabled = false;
+        }
+      })
+      .catch(error => {
+        showMessage("❌ เชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง", "error");
+        btn.innerText = "🤎 บันทึกข้อมูลลงทะเบียน";
+        btn.disabled = false;
+      });
+  });
+
+  function showMessage(msg, type) {
+    let msgDiv = document.getElementById('message');
+    msgDiv.innerText = msg;
+    msgDiv.className = type;
+  }
+</script>
+</body>
+</html>
