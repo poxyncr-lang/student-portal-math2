@@ -142,18 +142,7 @@ function botReplyScore_(replyToken, userId) {
 function botReplyScoreDetail_(replyToken, userId) {
   const student = botReadActiveStudent_(userId);
   if (!student) return botReplyScore_(replyToken, userId);
-  const s = student.score;
-  const lines = [
-    '📘 รายละเอียดคะแนน' + (s.courseCode ? ' (' + s.courseCode + ')' : ''),
-    'ก่อนกลางภาค: K ' + s.preK + '/10 | P ' + s.preP + '/10 | A ' + s.preA + '/5',
-    'รวมก่อนกลางภาค: ' + s.preTotal + '/25',
-    'สอบกลางภาค: ' + s.midterm + '/20',
-    'หลังกลางภาค: K ' + s.postK + '/10 | P ' + s.postP + '/10 | A ' + s.postA + '/5',
-    'รวมหลังกลางภาค: ' + s.postTotal + '/25',
-    'สอบปลายภาค: ' + s.finalExam + '/30',
-    'คะแนนรวม: ' + s.total + ' | ผลการเรียน: ' + s.finalGrade
-  ];
-  botReply_(replyToken, [{ type: 'text', text: lines.join('\n'), quickReply: { items: [botQuickReply_('เช็กคะแนน'), botQuickReply_('เวลาเรียน')] } }]);
+  botReply_(replyToken, [{ type: 'text', text: botScoreDetailText_(student), quickReply: { items: [botQuickReply_('เช็กคะแนน'), botQuickReply_('เวลาเรียน')] } }]);
 }
 
 function botReplyAttendance_(replyToken, userId) {
@@ -225,6 +214,9 @@ function botReadStudent_(studentId) {
   if (!roster) return null;
 
   const scoreSheet = ss.getSheetByName(BOT_SHEETS.scores);
+  const scoreMeta = scoreSheet.getRange(1, 1, 2, scoreSheet.getLastColumn()).getValues();
+  const scoreMaxima = scoreMeta[0];
+  const scoreLabels = scoreMeta[1];
   const scoreRows = scoreSheet.getRange(BOT_SCORE_FIRST_ROW, 1, Math.max(scoreSheet.getLastRow() - BOT_SCORE_FIRST_ROW + 1, 1), scoreSheet.getLastColumn()).getValues();
   const scoreRow = botFindStudentRow_(scoreRows, studentId) || [];
 
@@ -245,13 +237,72 @@ function botReadStudent_(studentId) {
       status: botValueByHeader_(attendanceHeaders, attendanceRow, 'สถานะ')
     },
     score: {
-      preK: botValue_(scoreRow, 6), preP: botValue_(scoreRow, 7), preA: botValue_(scoreRow, 8),
-      preTotal: botValue_(scoreRow, 26), postK: botValue_(scoreRow, 9), postP: botValue_(scoreRow, 10),
-      postA: botValue_(scoreRow, 11), postTotal: botValue_(scoreRow, 27), midterm: botValue_(scoreRow, 28),
+      preItems: botScoreItems_(scoreLabels, scoreMaxima, scoreRow, 6, 15),
+      postItems: botScoreItems_(scoreLabels, scoreMaxima, scoreRow, 16, 25),
+      preTotal: botValue_(scoreRow, 26), postTotal: botValue_(scoreRow, 27), midterm: botValue_(scoreRow, 28),
       finalExam: botValue_(scoreRow, 29), total: botValue_(scoreRow, 30),
       finalGrade: botValue_(scoreRow, 33) || botValue_(scoreRow, 31), courseCode: botValue_(scoreRow, 34)
     }
   };
+}
+
+function botScoreItems_(labels, maxima, scoreRow, firstColumn, lastColumn) {
+  const items = [];
+  for (let column = firstColumn; column <= lastColumn; column += 1) {
+    const maximum = botPositiveNumber_(maxima[column]);
+    if (maximum === null) continue;
+    items.push({
+      label: botNormalize_(labels[column]) || 'รายการประเมิน',
+      score: botValue_(scoreRow, column),
+      maximum: botDisplayNumber_(maxima[column])
+    });
+  }
+  return items;
+}
+
+function botPositiveNumber_(value) {
+  const number = Number(String(value === undefined || value === null ? '' : value).replace(/,/g, '').trim());
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function botDisplayNumber_(value) {
+  const number = botPositiveNumber_(value);
+  return number !== null && Math.floor(number) === number ? String(number) : String(value);
+}
+
+function botScoreDetailText_(student) {
+  const s = student.score;
+  const lines = ['📘 รายละเอียดคะแนน' + (s.courseCode ? ' (' + s.courseCode + ')' : ''), ''];
+  botAppendScoreSection_(lines, '❇️ ก่อนกลางภาค', s.preItems);
+  lines.push('รวมก่อนกลางภาค: ' + s.preTotal + '/25', '');
+  lines.push('📝 สอบกลางภาค: ' + s.midterm + '/20', '');
+  botAppendScoreSection_(lines, '❇️ หลังกลางภาค', s.postItems);
+  lines.push('รวมหลังกลางภาค: ' + s.postTotal + '/25', '');
+  lines.push('📝 สอบปลายภาค: ' + s.finalExam + '/30');
+  lines.push('━━━━━━━━━━━━━━');
+  lines.push('🎯 คะแนนรวม: ' + s.total + '/100');
+  lines.push('🏆 ผลการเรียน: ' + s.finalGrade);
+  return lines.join('\n');
+}
+
+function botAppendScoreSection_(lines, title, items) {
+  lines.push(title);
+  if (!items.length) {
+    lines.push('ยังไม่มีรายการประเมิน', '');
+    return;
+  }
+  items.forEach(function(item, index) {
+    lines.push((index + 1) + ') ' + botShortScoreLabel_(item.label) + '  ' + item.score + '/' + item.maximum);
+  });
+  lines.push('');
+}
+
+function botShortScoreLabel_(label) {
+  const characters = Array.from(botNormalize_(label));
+  const maximumLength = 18;
+  return characters.length > maximumLength
+    ? characters.slice(0, maximumLength - 1).join('') + '…'
+    : characters.join('');
 }
 
 function botFindStudentRow_(rows, studentId) {
@@ -321,4 +372,3 @@ function botReply_(replyToken, messages) {
 function botNormalize_(value) {
   return String(value === undefined || value === null ? '' : value).trim();
 }
-
