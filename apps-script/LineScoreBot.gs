@@ -316,8 +316,17 @@ function botNameFromRoster_(row) {
 }
 
 function botValueByHeader_(headers, row, keyword) {
-  const index = headers.findIndex(function(header) { return botNormalize_(header).indexOf(keyword) !== -1; });
-  return index === -1 ? '0' : botValue_(row, index);
+  // Match the whole header: "ลา" must never match "เวลาเรียน".
+  const index = headers.findIndex(function(header) { return botNormalize_(header) === botNormalize_(keyword); });
+  if (index === -1) throw new Error('ไม่พบหัวคอลัมน์เวลาเรียน: ' + keyword);
+  const value = row && row[index];
+  if (keyword !== 'เวลาเรียน') return botValue_(row, index);
+  if (value === undefined || value === null || value === '') return '-';
+  const raw = String(value).trim();
+  const alreadyPercent = /%$/.test(raw);
+  const numeric = Number(alreadyPercent ? raw.slice(0, -1).trim() : raw);
+  if (!Number.isFinite(numeric)) return '-';
+  return (alreadyPercent ? numeric : numeric * 100).toFixed(2) + '%';
 }
 
 function botValue_(row, index) {
